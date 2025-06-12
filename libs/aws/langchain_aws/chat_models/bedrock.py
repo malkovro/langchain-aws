@@ -94,16 +94,15 @@ def _convert_one_message_to_text_llama3(message: BaseMessage) -> str:
         )
     elif isinstance(message, HumanMessage):
         message_text = (
-            f"<|start_header_id|>user" f"<|end_header_id|>{message.content}<|eot_id|>"
+            f"<|start_header_id|>user<|end_header_id|>{message.content}<|eot_id|>"
         )
     elif isinstance(message, AIMessage):
         message_text = (
-            f"<|start_header_id|>assistant"
-            f"<|end_header_id|>{message.content}<|eot_id|>"
+            f"<|start_header_id|>assistant<|end_header_id|>{message.content}<|eot_id|>"
         )
     elif isinstance(message, SystemMessage):
         message_text = (
-            f"<|start_header_id|>system" f"<|end_header_id|>{message.content}<|eot_id|>"
+            f"<|start_header_id|>system<|end_header_id|>{message.content}<|eot_id|>"
         )
     else:
         raise ValueError(f"Got unknown type {message}")
@@ -127,21 +126,15 @@ def _convert_one_message_to_text_llama4(message: BaseMessage) -> str:
             f"<|header_start|>{message.role}<|header_end|>{message.content}<|eot|>"
         )
     elif isinstance(message, HumanMessage):
-        message_text = (
-            f"<|header_start|>user<|header_end|>{message.content}<|eot|>"
-        )
+        message_text = f"<|header_start|>user<|header_end|>{message.content}<|eot|>"
     elif isinstance(message, AIMessage):
         message_text = (
             f"<|header_start|>assistant<|header_end|>{message.content}<|eot|>"
         )
     elif isinstance(message, SystemMessage):
-        message_text = (
-            f"<|header_start|>system<|header_end|>{message.content}<|eot|>"
-        )
+        message_text = f"<|header_start|>system<|header_end|>{message.content}<|eot|>"
     elif isinstance(message, ToolMessage):
-        message_text = (
-            f"<|header_start|>ipython<|header_end|>{message.content}<|eom|>"
-        )
+        message_text = f"<|header_start|>ipython<|header_end|>{message.content}<|eom|>"
     else:
         raise ValueError(f"Got unknown type {message}")
 
@@ -193,7 +186,7 @@ def convert_messages_to_prompt_anthropic(
     """
     if messages is None:
         return ""
-    
+
     messages = messages.copy()  # don't mutate the original list
     if len(messages) > 0 and not isinstance(messages[-1], AIMessage):
         messages.append(AIMessage(content=""))
@@ -230,21 +223,13 @@ def convert_messages_to_prompt_mistral(messages: List[BaseMessage]) -> str:
 
 def _convert_one_message_to_text_deepseek(message: BaseMessage) -> str:
     if isinstance(message, ChatMessage):
-        message_text = (
-            f"<|{message.role}|>{message.content}"
-        )
+        message_text = f"<|{message.role}|>{message.content}"
     elif isinstance(message, HumanMessage):
-        message_text = (
-            f"<|User|>{message.content}"
-        )
+        message_text = f"<|User|>{message.content}"
     elif isinstance(message, AIMessage):
-        message_text = (
-            f"<|Assistant|>{message.content}"
-        )
+        message_text = f"<|Assistant|>{message.content}"
     elif isinstance(message, SystemMessage):
-        message_text = (
-            f"<|System|>{message.content}"
-        )
+        message_text = f"<|System|>{message.content}"
     else:
         raise ValueError(f"Got unknown type {message}")
 
@@ -325,7 +310,7 @@ def _format_data_content_block(block: dict) -> dict:
                     "type": "base64",
                     "media_type": block["mime_type"],
                     "data": block["data"],
-                }
+                },
             }
         else:
             error_message = "Image data only supported through in-line base64 format."
@@ -425,9 +410,9 @@ def _format_anthropic_messages(
 
         if not isinstance(message.content, str):
             # parse as dict
-            assert isinstance(
-                message.content, list
-            ), "Anthropic message content must be str or list of dicts"
+            assert isinstance(message.content, list), (
+                "Anthropic message content must be str or list of dicts"
+            )
 
             # populate content
             content = []
@@ -457,19 +442,28 @@ def _format_anthropic_messages(
                             # Handle list content inside tool_result
                             processed_list = []
                             for list_item in content_item:
-                                if isinstance(list_item, dict) and list_item.get("type") == "image_url":
+                                if (
+                                    isinstance(list_item, dict)
+                                    and list_item.get("type") == "image_url"
+                                ):
                                     # Process image in list
-                                    source = _format_image(list_item["image_url"]["url"])
-                                    processed_list.append({"type": "image", "source": source})
+                                    source = _format_image(
+                                        list_item["image_url"]["url"]
+                                    )
+                                    processed_list.append(
+                                        {"type": "image", "source": source}
+                                    )
                                 else:
                                     # Keep other items as is
                                     processed_list.append(list_item)
                             # Add processed list to tool_result
-                            tool_blocks.append({
-                                "type": "tool_result",
-                                "tool_use_id": item.get("tool_use_id"),
-                                "content": processed_list
-                            })
+                            tool_blocks.append(
+                                {
+                                    "type": "tool_result",
+                                    "tool_use_id": item.get("tool_use_id"),
+                                    "content": processed_list,
+                                }
+                            )
                         else:
                             # For other content types, keep as is
                             tool_blocks.append(item)
@@ -1118,7 +1112,10 @@ class ChatBedrock(BaseChatModel, BedrockBase):
             return self._as_converse.with_structured_output(
                 schema, include_raw=include_raw, **kwargs
             )
-        if "claude-" not in self._get_base_model():
+        if (
+            "claude-" not in self._get_base_model()
+            and "deepseek" not in self._get_base_model()
+        ):
             raise ValueError(
                 f"Structured output is not supported for model {self._get_base_model()}"
             )
